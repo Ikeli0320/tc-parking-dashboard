@@ -24,9 +24,9 @@ RUN mkdir -p data
 ENV PYTHONUNBUFFERED=1
 ENV PORT=8081
 
-# 暴露端口（Railway 會自動設定 PORT 環境變數）
-EXPOSE $PORT
+# 暴露端口（Railway 會自動設定 PORT 環境變數，使用預設值）
+EXPOSE 8081
 
-# 啟動應用程式
-CMD gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+# 啟動應用程式（使用環境變數 PORT，如果沒有則使用 8081）
+CMD gunicorn app:app --bind 0.0.0.0:${PORT:-8081} --workers 2 --timeout 120
 
