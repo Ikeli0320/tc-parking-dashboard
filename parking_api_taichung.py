@@ -70,22 +70,30 @@ def get_showparking_table(input_id):
         return None
 
 
-def get_parking_space_info(parking_light_df, test_mode=False, test_limit=10):
+def get_parking_space_info(parking_light_df, target_ids=None):
     """
-    取得所有停車場的剩餘車位資訊
+    取得指定停車場的剩餘車位資訊
     
     Args:
         parking_light_df (pd.DataFrame): 停車場位置資料
-        test_mode (bool): 是否為測試模式
-        test_limit (int): 測試模式下的資料筆數
+        target_ids (list): 要抓取的停車場 ID 列表，如果為 None 則抓取所有
     
     Returns:
         pd.DataFrame: 包含停車場詳細資訊的 DataFrame
     """
     parking_space_list = []
-    total_count = test_limit if test_mode else len(parking_light_df)
     
-    print(f'開始爬取停車場資訊 ({"測試模式" if test_mode else "完整模式"}): 共 {total_count} 筆')
+    # 如果指定了目標 ID，則只處理這些 ID
+    if target_ids is not None:
+        # 確保 ID 為字串格式以便比對
+        target_ids = [str(id) for id in target_ids]
+        # 過濾出只包含目標 ID 的資料
+        parking_light_df = parking_light_df[parking_light_df['id'].astype(str).isin(target_ids)]
+        total_count = len(parking_light_df)
+        print(f'開始爬取指定停車場資訊: 共 {total_count} 筆')
+    else:
+        total_count = len(parking_light_df)
+        print(f'開始爬取所有停車場資訊: 共 {total_count} 筆')
     
     for i in range(total_count):
         parking_id = parking_light_df['id'].iloc[i]
@@ -159,32 +167,60 @@ def save_to_csv(dataframe, output_dir='output'):
     return filename
 
 
-def main(test_mode=False, test_limit=10):
+def fetch_parking_data(target_ids=None):
     """
-    主程式
+    取得停車場資料並返回 DataFrame（不儲存 CSV）
     
     Args:
-        test_mode (bool): 是否為測試模式
-        test_limit (int): 測試模式下的資料筆數
+        target_ids (list): 要抓取的停車場 ID 列表，如果為 None 則使用預設的 10 個 ID
+    
+    Returns:
+        pd.DataFrame: 包含停車場完整資料的 DataFrame，如果失敗則返回空的 DataFrame
+    """
+    # 定義目標停車場 ID 列表
+    if target_ids is None:
+        # 預設只抓取指定的停車場 ID
+        target_ids = [501, 506, 517, 544, 629, 663, 665, 1326, 1692, 1699]
+    
+    # 取得停車場位置資料
+    parking_light_df = get_parking_locations()
+    if parking_light_df.empty:
+        print('無法取得停車場位置資料')
+        return pd.DataFrame()
+    
+    # 取得停車場詳細資訊（只處理目標 ID）
+    parking_space_df = get_parking_space_info(parking_light_df, target_ids)
+    if parking_space_df.empty:
+        print('無法取得停車場詳細資訊')
+        return pd.DataFrame()
+    
+    # 合併資料
+    parking_empty_space_df = merge_parking_data(parking_space_df, parking_light_df)
+    
+    return parking_empty_space_df
+
+
+def main(target_ids=None):
+    """
+    主程式（保留原有功能，用於獨立執行）
+    
+    Args:
+        target_ids (list): 要抓取的停車場 ID 列表，如果為 None 則抓取所有
     """
     print('=' * 50)
     print('台中市停車場資料爬蟲程式')
     print('=' * 50)
     
-    # 取得停車場位置資料
-    parking_light_df = get_parking_locations()
-    if parking_light_df.empty:
-        print('無法取得停車場位置資料，程式結束')
-        return
+    # 定義目標停車場 ID 列表
+    if target_ids is None:
+        # 預設只抓取指定的停車場 ID
+        target_ids = [501, 506, 517, 544, 629, 663, 665, 1326, 1692, 1699]
+        print(f'使用預設目標 ID: {target_ids}')
+    else:
+        print(f'使用指定目標 ID: {target_ids}')
     
-    # 取得停車場詳細資訊
-    parking_space_df = get_parking_space_info(parking_light_df, test_mode, test_limit)
-    if parking_space_df.empty:
-        print('無法取得停車場詳細資訊，程式結束')
-        return
-    
-    # 合併資料
-    parking_empty_space_df = merge_parking_data(parking_space_df, parking_light_df)
+    # 使用 fetch_parking_data 取得資料
+    parking_empty_space_df = fetch_parking_data(target_ids)
     
     # 儲存資料
     if not parking_empty_space_df.empty:
@@ -197,9 +233,5 @@ def main(test_mode=False, test_limit=10):
 
 
 if __name__ == "__main__":
-    # 執行主程式
-    # 測試模式：只爬取前 10 筆資料
-    # main(test_mode=True, test_limit=10)
-    
-    # 完整模式：爬取所有資料
-    main(test_mode=False)
+    # 執行主程式，只抓取指定的停車場 ID
+    main()

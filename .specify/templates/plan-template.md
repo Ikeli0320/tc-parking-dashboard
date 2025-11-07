@@ -31,7 +31,15 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+**Minimal Scope Principle**: Does this plan include only features required to complete the specified goal? Remove any architectural extensions, abstractions, or expansion interfaces.
+
+**Rapid Delivery Principle**: Are implementation choices optimized for speed over long-term best practices?
+
+**Immediate Executability Principle**: Can the code be executed immediately without additional setup or complex deployment?
+
+**Documentation Simplicity Principle**: Does documentation only include key processes and usage, without detailed architecture or long-term maintenance guides?
+
+**Scope Boundaries**: Verify no activities are included that violate scope boundaries (e.g., extensible architecture, non-goal features, long-term maintenance docs, performance optimization unless affecting basic functionality, automated test suites unless delivery requirement, CI/CD, refactoring for maintainability).
 
 ## Project Structure
 

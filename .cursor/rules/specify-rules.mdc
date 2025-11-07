@@ -1,0 +1,33 @@
+# Crawl-ike Development Guidelines
+
+Auto-generated from all feature plans. Last updated: 2025-11-07
+
+## Active Technologies
+- SQLite 資料庫檔案 (單一檔案，易於部署) (001-parking-dashboard)
+
+- Python 3.9+ (與現有程式一致) (001-parking-dashboard)
+
+## Project Structure
+
+```text
+backend/
+frontend/
+tests/
+```
+
+## Commands
+
+cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLOGIES] pytest [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLOGIES] ruff check .
+
+## Code Style
+
+Python 3.9+ (與現有程式一致): Follow standard conventions
+
+## Recent Changes
+- 001-parking-dashboard: Added Python 3.9+ (與現有程式一致)
+- 001-parking-dashboard: Added Python 3.9+ (與現有程式一致)
+
+- 001-parking-dashboard: Added Python 3.9+ (與現有程式一致)
+
+<!-- MANUAL ADDITIONS START -->
+<!-- MANUAL ADDITIONS END -->

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台中市停車場資料查詢</title>
+    <!-- Leaflet.js CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin=""/>
+    <!-- Leaflet.js JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f5f5f5;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .header {
+            background: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1000;
+            position: relative;
+        }
+        
+        h1 {
+            color: #333;
+            font-size: 24px;
+            text-align: center;
+        }
+        
+        #map {
+            width: 100%;
+            height: calc(100vh - 60px);
+            z-index: 1;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 15px 25px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 1001;
+            display: none;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .loading.active {
+            display: block;
+        }
+        
+        .error {
+            position: absolute;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ffebee;
+            color: #d32f2f;
+            padding: 15px 25px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 1001;
+            display: none;
+            font-size: 14px;
+            max-width: 400px;
+            text-align: center;
+        }
+        
+        .error.active {
+            display: block;
+        }
+        
+        /* Leaflet Popup 樣式自訂 */
+        .leaflet-popup-content-wrapper {
+            border-radius: 8px;
+            padding: 0;
+        }
+        
+        .leaflet-popup-content {
+            margin: 0;
+            padding: 15px;
+            min-width: 250px;
+        }
+        
+        .popup-content {
+            font-size: 14px;
+        }
+        
+        .popup-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #4CAF50;
+        }
+        
+        .popup-item {
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        
+        .popup-label {
+            font-weight: 600;
+            color: #666;
+            display: inline-block;
+            min-width: 80px;
+        }
+        
+        .popup-value {
+            color: #333;
+        }
+        
+        .popup-loading {
+            text-align: center;
+            padding: 10px;
+            color: #666;
+            font-size: 13px;
+        }
+        
+        .popup-no-data {
+            text-align: center;
+            padding: 10px;
+            color: #999;
+            font-size: 13px;
+            font-style: italic;
+        }
+        
+        .popup-download-btn {
+            margin-top: 15px;
+            padding: 10px 20px;
+            width: 100%;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .popup-download-btn:hover {
+            background-color: #45a049;
+        }
+        
+        .popup-download-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>台中市停車場資料查詢</h1>
+    </div>
+    
+    <div id="map"></div>
+    
+    <div class="loading" id="loading">
+        <div>載入地圖中...</div>
+    </div>
+    
+    <div class="error" id="error"></div>
+
+    <script>
+        let map;
+        let markers = [];
+        let parkingLots = [];
+        
+        // 初始化地圖
+        function initMap() {
+            // 台中市中心座標
+            const taichungCenter = [24.15, 120.67];
+            
+            // 建立地圖
+            map = L.map('map').setView(taichungCenter, 12);
+            
+            // 加入 OpenStreetMap 圖層
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(map);
+            
+            // 載入停車場資料
+            fetchParkingList();
+        }
+        
+        // 取得停車場列表
+        async function fetchParkingList() {
+            showLoading();
+            hideError();
+            
+            try {
+                const response = await fetch('/api/parking/list');
+                const data = await response.json();
+                
+                if (data.parking_lots && data.parking_lots.length > 0) {
+                    parkingLots = data.parking_lots;
+                    createMarkers();
+                    fitMapBounds();
+                    hideLoading();
+                } else {
+                    showError('尚無停車場資料');
+                    hideLoading();
+                }
+            } catch (err) {
+                showError('無法載入停車場列表：' + err.message);
+                hideLoading();
+            }
+        }
+        
+        // 建立標記
+        function createMarkers() {
+            // 清除現有標記
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+            
+            parkingLots.forEach(lot => {
+                if (lot.lon && lot.lat) {
+                    // 建立標記
+                    const marker = L.marker([lot.lat, lot.lon]).addTo(map);
+                    
+                    // 綁定點擊事件
+                    marker.on('click', () => {
+                        showParkingInfo(lot.id, marker);
+                    });
+                    
+                    markers.push(marker);
+                }
+            });
+        }
+        
+        // 調整地圖視角以顯示所有標記
+        function fitMapBounds() {
+            if (markers.length === 0) return;
+            
+            const group = new L.featureGroup(markers);
+            map.fitBounds(group.getBounds().pad(0.1));
+        }
+        
+        // 顯示停車場資訊（在資訊泡泡中）
+        async function showParkingInfo(parkingId, marker) {
+            // 先顯示載入中的泡泡
+            const loadingPopup = L.popup({
+                maxWidth: 300,
+                className: 'parking-popup'
+            }).setContent(`
+                <div class="popup-content">
+                    <div class="popup-loading">載入資料中...</div>
+                </div>
+            `);
+            
+            marker.bindPopup(loadingPopup).openPopup();
+            
+            try {
+                const response = await fetch(`/api/parking/${parkingId}/latest`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // 建立資訊泡泡內容
+                    const popupContent = createPopupContent(data);
+                    const popup = L.popup({
+                        maxWidth: 300,
+                        className: 'parking-popup'
+                    }).setContent(popupContent);
+                    
+                    marker.bindPopup(popup).openPopup();
+                } else {
+                    // 顯示錯誤訊息
+                    const errorPopup = L.popup({
+                        maxWidth: 300,
+                        className: 'parking-popup'
+                    }).setContent(`
+                        <div class="popup-content">
+                            <div class="popup-no-data">${data.error || '無法取得停車場資料'}</div>
+                        </div>
+                    `);
+                    
+                    marker.bindPopup(errorPopup).openPopup();
+                }
+            } catch (err) {
+                // 顯示錯誤訊息
+                const errorPopup = L.popup({
+                    maxWidth: 300,
+                    className: 'parking-popup'
+                }).setContent(`
+                    <div class="popup-content">
+                        <div class="popup-no-data">無法取得停車場資料：${err.message}</div>
+                    </div>
+                `);
+                
+                marker.bindPopup(errorPopup).openPopup();
+            }
+        }
+        
+        // 建立資訊泡泡內容
+        function createPopupContent(data) {
+            // 檢查是否有資料
+            const hasData = data.recorded_at !== null && data.recorded_at !== undefined;
+            
+            let content = `
+                <div class="popup-content">
+                    <div class="popup-title">${data.name || '未知停車場'}</div>
+            `;
+            
+            if (hasData) {
+                content += `
+                    <div class="popup-item">
+                        <span class="popup-label">地址：</span>
+                        <span class="popup-value">${data.address || '-'}</span>
+                    </div>
+                    <div class="popup-item">
+                        <span class="popup-label">總車位：</span>
+                        <span class="popup-value">${data.tot_space || '-'}</span>
+                    </div>
+                    <div class="popup-item">
+                        <span class="popup-label">剩餘車位：</span>
+                        <span class="popup-value">${data.empty_space || '無資訊'}</span>
+                    </div>
+                    <div class="popup-item">
+                        <span class="popup-label">更新時間：</span>
+                        <span class="popup-value">${data.update_time || data.recorded_at || '-'}</span>
+                    </div>
+                    <button class="popup-download-btn" onclick="downloadParkingData(${data.id})">
+                        下載歷史資料 (CSV)
+                    </button>
+                `;
+            } else {
+                content += `
+                    <div class="popup-no-data">資料尚未更新</div>
+                `;
+            }
+            
+            content += `</div>`;
+            
+            return content;
+        }
+        
+        // 下載停車場資料
+        function downloadParkingData(parkingId) {
+            window.location.href = `/api/parking/${parkingId}/download`;
+        }
+        
+        // 工具函數
+        function showLoading() {
+            document.getElementById('loading').classList.add('active');
+        }
+        
+        function hideLoading() {
+            document.getElementById('loading').classList.remove('active');
+        }
+        
+        function showError(message) {
+            const errorEl = document.getElementById('error');
+            errorEl.textContent = message;
+            errorEl.classList.add('active');
+            
+            // 3秒後自動隱藏
+            setTimeout(() => {
+                hideError();
+            }, 3000);
+        }
+        
+        function hideError() {
+            document.getElementById('error').classList.remove('active');
+        }
+        
+        // 頁面載入時初始化地圖
+        window.addEventListener('DOMContentLoaded', () => {
+            try {
+                initMap();
+            } catch (err) {
+                showError('地圖初始化失敗：' + err.message);
+            }
+        });
+    </script>
+</body>
+</html>
