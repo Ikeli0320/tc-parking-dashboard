@@ -172,7 +172,7 @@ def fetch_parking_data(target_ids=None):
     取得停車場資料並返回 DataFrame（不儲存 CSV）
     
     Args:
-        target_ids (list): 要抓取的停車場 ID 列表，如果為 None 則使用預設的 10 個 ID
+        target_ids (list): 要抓取的停車場 ID 列表，如果為 None 則使用預設的 19 個 ID
     
     Returns:
         pd.DataFrame: 包含停車場完整資料的 DataFrame，如果失敗則返回空的 DataFrame
@@ -180,7 +180,7 @@ def fetch_parking_data(target_ids=None):
     # 定義目標停車場 ID 列表
     if target_ids is None:
         # 預設只抓取指定的停車場 ID
-        target_ids = [501, 506, 517, 544, 629, 663, 665, 1326, 1692, 1699]
+        target_ids = [501, 506, 511, 513, 514, 515, 517, 544, 629, 663, 665, 722, 1326, 1529, 1692, 1699, 1715, 1716, 3074]
     
     # 取得停車場位置資料
     parking_light_df = get_parking_locations()
@@ -214,7 +214,7 @@ def main(target_ids=None):
     # 定義目標停車場 ID 列表
     if target_ids is None:
         # 預設只抓取指定的停車場 ID
-        target_ids = [501, 506, 517, 544, 629, 663, 665, 1326, 1692, 1699]
+        target_ids = [501, 506, 511, 513, 514, 515, 517, 544, 629, 663, 665, 722, 1326, 1529, 1692, 1699, 1715, 1716, 3074]
         print(f'使用預設目標 ID: {target_ids}')
     else:
         print(f'使用指定目標 ID: {target_ids}')
