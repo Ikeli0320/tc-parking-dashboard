@@ -359,8 +359,8 @@ scheduler.add_job(
 scheduler.start()
 print('排程器已啟動：每10分鐘執行一次資料抓取')
 
-# 啟動時執行一次（可選）
-# fetch_and_store_data()
+# 啟動時立即執行一次資料抓取
+fetch_and_store_data()
 
 
 if __name__ == '__main__':
